@@ -1,45 +1,39 @@
 package lesson3.image;
 
-import io.restassured.response.ValidatableResponse;
+import dto.responses.GetImageInfoResponse;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class ImageFavoriteTests extends ImageBaseTests{
     @Test
     void FavoriteAndUnfavoriteTest() {
-        String image = getBase64FromFile("1px.png");
+        String image = getBase64FromFile("1px.png");//lalala
 
         //Загружаем картинку
-        ValidatableResponse uploadResponse = uploadImageAuthed(image);
+        GetImageInfoResponse uploadResponse = uploadImageAuthed(image,spec200);
 
-        String imageId = getId(uploadResponse);
-        String imageHash = getHash(uploadResponse);
+        String imageId = uploadResponse.getData().getId();
+        String imageHash = uploadResponse.getData().getDeletehash();
 
         //Отмечаем картинку
-        ValidatableResponse favoriteResponse = favoriteImageAuthed(imageId);
+        favoriteImageAuthed(imageId,spec200);
 
         //запрашиваем описание картики
-        ValidatableResponse getFavoriteResponse = getImageAuthed(imageId);
+        GetImageInfoResponse favoriteResponse = getImageAuthed(imageId,spec200);
 
         //Отмечаем картинку повторно
-        ValidatableResponse unfavoriteResponse = favoriteImageAuthed(imageId);
+        favoriteImageAuthed(imageId,spec200);
 
         //запрашиваем описание картики повторно
-        ValidatableResponse getUnfavoriteResponse = getImageAuthed(imageId);
+        GetImageInfoResponse unfavoriteResponse = getImageAuthed(imageId,spec200);
 
         //удаляем картику
-        ValidatableResponse deleteResponse = deleteImageAuthed(imageHash);
+        deleteImageAuthed(imageHash,spec200);
 
         //проверяем статусы картинки
-        getFavoriteResponse.body("data.favorite", equalTo(true));
-        getUnfavoriteResponse.body("data.favorite", equalTo(false));
-
-        StatusCheck(uploadResponse, 200);
-        StatusCheck(favoriteResponse, 200);
-        StatusCheck(getFavoriteResponse, 200);
-        StatusCheck(unfavoriteResponse, 200);
-        StatusCheck(getUnfavoriteResponse, 200);
-        StatusCheck(deleteResponse, 200);
+        assertThat(favoriteResponse.getData().getFavorite(), equalTo(true));
+        assertThat(unfavoriteResponse.getData().getFavorite(), equalTo(false));
     }
 }

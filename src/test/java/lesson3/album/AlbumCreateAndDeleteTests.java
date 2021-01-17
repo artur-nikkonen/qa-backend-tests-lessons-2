@@ -1,5 +1,7 @@
 package lesson3.album;
 
+import dto.responses.CreateAlbumResponse;
+import dto.responses.GetAlbumResponse;
 import io.restassured.response.ValidatableResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class AlbumCreateAndDeleteTests extends AlbumBaseTests {
@@ -19,7 +22,10 @@ public class AlbumCreateAndDeleteTests extends AlbumBaseTests {
                 Arguments.of("title", null, "title", "null"),
                 Arguments.of(null, null, "null", "null"),
                 //Max long title
-                Arguments.of(StringUtils.repeat("q", 255), null, StringUtils.repeat("q", 255), "null")
+                Arguments.of(StringUtils.repeat("q", 255), null, StringUtils.repeat("q", 255), "null"),
+                //спецсимволы
+                Arguments.of("!\";%:?*(){}[]\\'.,`~^$", "!\";%:?*(){}[]\\'.,`~^$",
+                        "!\";%:?*(){}[]\\'.,`~^$", "!\";%:?*(){}[]\\'.,`~^$")
         );
     }
 
@@ -28,24 +34,18 @@ public class AlbumCreateAndDeleteTests extends AlbumBaseTests {
     void CreateAlbumTest(String title, String description, String expectedTitle, String expectedDescription) {
 
         //создаем альбом
-        ValidatableResponse createResponse = createAlbumAuthed(title, description);
-
-        String albumId = getId(createResponse);
-        String albumHash = getHash(createResponse);
+        CreateAlbumResponse createAlbumResponse = createAlbumAuthed(title, description, spec200);
+        String albumId = createAlbumResponse.getData().getId();
 
         //получаем альбом
-        ValidatableResponse getResponse = getAlbumAuthed(albumId);
+        GetAlbumResponse getAlbumResponse = getAlbumAuthed(albumId, spec200);
 
         //удаляем  альбом
-        ValidatableResponse deleteResponse = deleteAlbumAuthed(albumId);
+        deleteAlbumAuthed(albumId, spec200);
 
-        //проверяем title и dectription
-        getResponse.body("data.title", equalTo(expectedTitle));
-        getResponse.body("data.description", equalTo(expectedDescription));
-
-        StatusCheck(createResponse, 200);
-        StatusCheck(getResponse, 200);
-        StatusCheck(deleteResponse, 200);
+        //проверяем title и description
+        assertThat(getAlbumResponse.getData().getTitle(), equalTo(expectedTitle));
+        assertThat(getAlbumResponse.getData().getDescription(), equalTo(expectedDescription));
     }
 
     @Test
@@ -53,9 +53,7 @@ public class AlbumCreateAndDeleteTests extends AlbumBaseTests {
 
         String title = StringUtils.repeat("q", 256);
         //создаем альбом
-        ValidatableResponse createResponse = createAlbumAuthed(title, "");
-
-        StatusCheck(createResponse, 400);
+        createAlbumAuthedWithoutResponse(title, "", spec400);
     }
 }
 
