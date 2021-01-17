@@ -1,9 +1,13 @@
 package lesson3.album;
 
+import dto.responses.CreateAlbumResponse;
+import dto.responses.GetAlbumResponse;
+import dto.responses.GetImageInfoResponse;
 import io.restassured.response.ValidatableResponse;
 import lesson3.image.ImageBaseTests;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class AlbumAddImageTests extends AlbumBaseTests {
@@ -15,34 +19,27 @@ public class AlbumAddImageTests extends AlbumBaseTests {
         ImageBaseTests imageTests = new ImageBaseTests();
 
         //Загружаем картинку
-        ValidatableResponse uploadImageResponse = imageTests.uploadImageAuthed(image);
-        String imageId = getId(uploadImageResponse);
-        String imageHash = getHash(uploadImageResponse);
+        GetImageInfoResponse uploadImageResponse = imageTests.uploadImageAuthed(image, spec200);
+        String imageId = uploadImageResponse.getData().getId();
+        String imageHash = uploadImageResponse.getData().getDeletehash();
 
         //создаем альбом
-        ValidatableResponse createAlbumResponse = createAlbumAuthed("title", "description");
-        String albumId = getId(createAlbumResponse);
+        CreateAlbumResponse createAlbumResponse = createAlbumAuthed("title", "description", spec200);
+        String albumId = createAlbumResponse.getData().getId();
 
         //добавляем картинку в альбом
-        ValidatableResponse addImageResponse = addImageToAlbumAuthed(albumId, imageId);
+        addImageToAlbumAuthed(albumId, imageId, spec200);
 
         //получаем альбом
-        ValidatableResponse getAlbumResponse = getAlbumAuthed(albumId);
+        GetAlbumResponse getAlbumResponse = getAlbumAuthed(albumId, spec200);
 
         //удаляем  альбом
-        ValidatableResponse deleteAlbumResponse = deleteAlbumAuthed(albumId);
+        deleteAlbumAuthed(albumId, spec200);
 
         //удаляем картику
-        ValidatableResponse deleteImageResponse = imageTests.deleteImageAuthed(imageHash);
+        imageTests.deleteImageAuthed(imageHash, spec200);
 
         //проверяем, что описания обновились
-        getAlbumResponse.body("data.images[0].id", equalTo(imageId));
-
-        StatusCheck(uploadImageResponse, 200);
-        StatusCheck(createAlbumResponse, 200);
-        StatusCheck(addImageResponse, 200);
-        StatusCheck(getAlbumResponse, 200);
-        StatusCheck(deleteAlbumResponse, 200);
-        StatusCheck(deleteImageResponse, 200);
+        assertThat(getAlbumResponse.getData().getImages().get(0).getId(), equalTo(imageId));
     }
 }

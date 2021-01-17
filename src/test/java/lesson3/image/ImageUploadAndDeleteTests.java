@@ -1,6 +1,6 @@
 package lesson3.image;
 
-import io.restassured.response.ValidatableResponse;
+import dto.responses.GetImageInfoResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -14,13 +14,18 @@ public class ImageUploadAndDeleteTests extends ImageBaseTests {
         return Stream.of(
                 Arguments.of(""),
                 Arguments.of("QAZXSW12345"),
-                Arguments.of("https://geekbrains.ru/")
+                Arguments.of("https://geekbrains.ru/"),
+                Arguments.of(getBase64FromFile("fromTxtFile.png"))
         );
     }
 
     private static Stream<Arguments> correctImages() {
         return Stream.of(
                 Arguments.of(getBase64FromFile("image1.png")),
+                Arguments.of(getBase64FromFile("1px.gif")),
+                Arguments.of(getBase64FromFile("1px.bmp")),
+                Arguments.of(getBase64FromFile("1px.tif")),
+                Arguments.of(getBase64FromFile("1px.png")),
                 Arguments.of(uploadImageUrl)
         );
     }
@@ -29,38 +34,30 @@ public class ImageUploadAndDeleteTests extends ImageBaseTests {
     @MethodSource("correctImages")
     void uploadCorrectBase64ImageTest(String image) {
         //загружаем правильную картинку
-        ValidatableResponse uploadResponse = uploadImageAuthed(image);
+        GetImageInfoResponse uploadResponse = uploadImageAuthed(image, spec200);
 
         //удаляем картику
-        String imageHash = getHash(uploadResponse);
-        ValidatableResponse deleteResponse = deleteImageAuthed(imageHash);
+        String imageId = uploadResponse.getData().getId();
+        String imageHash = uploadResponse.getData().getDeletehash();
+        deleteImageAuthed(imageHash, spec200);
 
         //проверяем Id картинки
-        CheckId(uploadResponse);
+        CheckId(imageId);
 
         //проверяем deleteHash картинки
-        CheckHash(uploadResponse);
-
-        StatusCheck(uploadResponse, 200);
-        StatusCheck(deleteResponse, 200);
+        CheckHash(imageHash);
     }
 
     @ParameterizedTest
     @MethodSource("incorrectImages")
     void uploadIncorrectImageTest(String image) {
         //загружаем некорректную картинку
-        ValidatableResponse validatableResponse = uploadImageAuthed(image);
-
-        //проверяем, что статутс 400
-        StatusCheck(validatableResponse, 400);
+        uploadImageAuthedWithoutResponse(image, spec400);
     }
 
     @Test
     void DeleteUncreatedImageTest() {
         //удаляем несуществующую картинку
-        ValidatableResponse deleteResponse = deleteImageAuthed("0000000");
-
-        //проверяем, что статус 200. Правильно ли это?
-        StatusCheck(deleteResponse, 200);
+        deleteImageAuthed("0000000", spec200);
     }
 }

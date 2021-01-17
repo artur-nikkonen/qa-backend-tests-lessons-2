@@ -1,6 +1,6 @@
 package lesson3.image;
 
-import io.restassured.response.ValidatableResponse;
+import dto.responses.GetImageInfoResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -9,6 +9,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
 public class ImageUpdateTests extends ImageBaseTests {
@@ -28,9 +29,13 @@ public class ImageUpdateTests extends ImageBaseTests {
                 //Max long title
                 Arguments.of(StringUtils.repeat("q", 128), null, StringUtils.repeat("q", 128), "null"),
                 //Too long title
-                Arguments.of(StringUtils.repeat("q", 129), null, StringUtils.repeat("q", 128), "null")
-
+                Arguments.of(StringUtils.repeat("q", 129), null, StringUtils.repeat("q", 128), "null"),
                 //!!!Надо узнать максимальную длину description. И добавить проверку!!!
+                //спецсимволы
+                Arguments.of("!\";%:?*(){}[]\\'.,`~^$", "!\";%:?*(){}[]\\'.,`~^$",
+                        "!\";%:?*(){}[]\\'.,`~^$", "!\";%:?*(){}[]\\'.,`~^$")
+
+
         );
     }
 
@@ -42,26 +47,21 @@ public class ImageUpdateTests extends ImageBaseTests {
         String image = getBase64FromFile("1px.png");
 
         //Загружаем картинку
-        ValidatableResponse uploadResponse = uploadImageAuthed(image);
+        GetImageInfoResponse uploadResponse = uploadImageAuthed(image, spec200);
 
         //Обновляем заголовок и описание картинки
-        String imageId = getId(uploadResponse);
-        String imageHash = getHash(uploadResponse);
-        ValidatableResponse updateResponse = updateImageAuthed(imageHash, title, description);
+        String imageId = uploadResponse.getData().getId();
+        String imageHash = uploadResponse.getData().getDeletehash();
+        updateImageAuthed(imageHash, title, description, spec200);
 
         //запрашиваем описание картики
-        ValidatableResponse getResponse = getImageAuthed(imageId);
+        GetImageInfoResponse imageResponse = getImageAuthed(imageId, spec200);
 
         //удаляем картику
-        ValidatableResponse deleteResponse = deleteImageAuthed(imageHash);
+        deleteImageAuthed(imageHash, spec200);
 
         //проверяем, что описания обновились
-        getResponse.body("data.title", equalTo(expectedTitle));
-        getResponse.body("data.description", equalTo(expectedDescription));
-
-        StatusCheck(uploadResponse, 200);
-        StatusCheck(updateResponse, 200);
-        StatusCheck(getResponse, 200);
-        StatusCheck(deleteResponse, 200);
+        assertThat(imageResponse.getData().getTitle(), equalTo(expectedTitle));
+        assertThat(imageResponse.getData().getDescription(), equalTo(expectedDescription));
     }
 }

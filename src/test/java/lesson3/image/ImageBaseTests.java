@@ -1,56 +1,79 @@
 package lesson3.image;
 
+import dto.responses.GetImageInfoResponse;
 import io.restassured.response.ValidatableResponse;
+import io.restassured.specification.ResponseSpecification;
 import lesson3.base.BaseTests;
+import services.Endpoints;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.matchesPattern;
 
 public class ImageBaseTests extends BaseTests {
 
-    public ValidatableResponse getImageAuthed(String imageId) {
+    public GetImageInfoResponse getImageAuthed(String imageId, ResponseSpecification spec) {
         return given()
-                .headers(headers)
+                .spec(reqSpec)
                 .when()
                 .get("/image/{imageId}", imageId)
-                .prettyPeek()
-                .then();
+                .then()
+                .spec(spec)
+                .extract()
+                .body()
+                .as(GetImageInfoResponse.class);
     }
 
-    public ValidatableResponse updateImageAuthed(String imageHash, String title, String description) {
+    public ValidatableResponse updateImageAuthed(String imageHash, String title, String description,
+                                                 ResponseSpecification spec) {
         return given()
                 .headers(headers)
                 .contentType("multipart/form-data")
                 .multiPart("title", "" + title)
                 .multiPart("description", "" + description)
                 .when()
-                .post("/image/{imageHash}", imageHash)
-                .then();
+                .post(Endpoints.postUpdateImage, imageHash)
+                .then()
+                .spec(spec);
     }
 
-    public ValidatableResponse uploadImageAuthed(String image) {
-        return given()
-                .headers(headers)
+    public void uploadImageAuthedWithoutResponse(String image, ResponseSpecification spec) {
+        given()
+                .spec(reqSpec)
                 .multiPart("image", image)
                 .when()
-                .post("/image")
-                .then();
+                .post(Endpoints.postUploadImage)
+                .then()
+                .spec(spec);
     }
 
-    public ValidatableResponse deleteImageAuthed(String imageHash) {
+    public GetImageInfoResponse uploadImageAuthed(String image, ResponseSpecification spec) {
         return given()
-                .headers(headers)
+                .spec(reqSpec)
+                .multiPart("image", image)
                 .when()
-                .delete("/image/{imageHash}", imageHash)
-                .then();
+                .post(Endpoints.postUploadImage)
+                .then()
+                .spec(spec)
+                .extract()
+                .body()
+                .as(GetImageInfoResponse.class);
     }
 
-    public ValidatableResponse favoriteImageAuthed(String imageId) {
+    public ValidatableResponse deleteImageAuthed(String imageHash, ResponseSpecification spec) {
         return given()
-                .headers(headers)
+                .spec(reqSpec)
                 .when()
-                .post("/image/{imageId}/favorite", imageId)
-                .then();
+                .delete(Endpoints.deleteImage, imageHash)
+                .then()
+                .spec(spec);
+    }
+
+    public ValidatableResponse favoriteImageAuthed(String imageId, ResponseSpecification spec) {
+        return given()
+                .spec(reqSpec)
+                .when()
+                .post(Endpoints.postImageFavorite, imageId)
+                .then()
+                .spec(spec);
     }
 
 }
